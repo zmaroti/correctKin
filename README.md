@@ -78,7 +78,7 @@ optional flags:
 
 # filterRelates
 ```sh
-filterRelates [OPTIONS] <PCangsd kin coeff matrix.npy> <marker_overlap_fraction.overlap>
+filterRelates [OPTIONS] <marker_overlap_fraction.overlap>  <PCangsd kin coeff matrix.npy>
 ```
 filterRelates performs correction of estimated kinship coefficient, writes out statistics and filters the putative kins from the pairwise corrected kinship coefficient matrix.
 
