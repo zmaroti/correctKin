@@ -3,8 +3,7 @@ correctKin : Kinship coefficient estimation from low coverage ancient (or degrad
 This is a repository containing the tools to infer the degree of relationship from ancient/low coverage DNA. The approach is described detail in our manuscript:
 Emil Nyerki, Tibor Kalmár, Oszkár Schütz, Rui M. Lima, Endre Neparáczki, Tibor Török and Zoltán Maróti: "An optimized method to infer relatedness up to the 4th degree from low coverage ancient human genomes"
 
-doi: https://doi.org/...
-https://
+doi: https://doi.org/10.1186/s13059-023-02882-4
 
 The repository contains a minimal library to read/write binary PLINK, plain text EIGENSTRAT and binary PACKEDANCESTRYMAP data sets and command-line tools to aid importing haploid genotype data, calculate the pairwise marker overlap fraction between samples, calculate the corrected kinship coefficient matrix from the PCangsd numpy kinship coefficient estimation output file and the marker overlap fraction file, and filter the potential relatives from the corrected kinship coefficient matrix. Additionally it contains the tools that were used in our original manuscript to simulate partially genotyped data from fully typed data sets.
 
