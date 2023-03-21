@@ -34,6 +34,9 @@ Each command line tool will print a help if issued without the proper options or
 cmdName -help
 ```
 
+### Quickstart with practical examples
+A [PDF](correctKin_quickstart.pdf) is available for detailed description and considerations for analyzing various data sources.
+
 ## Description of individual tools used in kinship analysis
 # importHaploCall
 This tool is to import ANGSD random pseudo haploid call genotype data into the standard binary PLINK or plain text EIGENSTRAT genotype data format.
