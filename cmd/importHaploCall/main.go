@@ -307,7 +307,7 @@ func main() {
 
     fmt.Println("Parsing SNP coordinates")
 
-    SNPs  = correctKin.ReadSNP(Args[0])
+    SNPs  = correctKin.ReadSNP(Args[0], false)
 
     GENOTYPES = make([][]uint8, len(SNPs))
 
