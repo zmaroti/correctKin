@@ -9,7 +9,7 @@ import (
     "fmt"
 )
 
-func ReadBIM(fn string, flipMajorMinor bool) []SNP {
+func ReadBIM(fn string) []SNP {
     inFile, err := os.Open(fn)
     defer inFile.Close()
 
@@ -53,19 +53,7 @@ func ReadBIM(fn string, flipMajorMinor bool) []SNP {
         // PLINK format
         // CHR     ID              MAP(cm) POS     MINOR   MAJOR
         // 1       rs3094315       0.02013 752566  G       A
-        // NOTE
-        // in PLINK documentation field 5 is allele 1 (usually minor) and field 6 is allele 2 (usually major)
-        // HOWEVER convertf will not flip alleles when converting EIGENSTRAT to BED or PED, the snp file REF (field 5)
-        // is kept at field 5 of the resulting .bim or .pedsnp file, while ALT (field 6) is kept at field 6 of the PLINK format
-        // so we have the flipMajorMinor option to use depending on whether your PLINK file is coming from a PLINK data set
-        // or converted from EIGENSTRAT data set using convertf of EIGENSTRAT package
-        // We have to note that it is not an issue in any population genetic analysis when one single data set is used, and
-        // that data set is not created from many datasets where the minor/major SNPs are flipped differently
-        if flipMajorMinor {
-            SNPs = append(SNPs, SNP{ID: fields[1], CHR: fields[0], MAP: fields[2], POS: pos, REF: fields[5], ALT: fields[4]})
-        } else {
-            SNPs = append(SNPs, SNP{ID: fields[1], CHR: fields[0], MAP: fields[2], POS: pos, REF: fields[4], ALT: fields[5]})
-        }
+        SNPs = append(SNPs, SNP{ID: fields[1], CHR: fields[0], MAP: fields[2], POS: pos, REF: fields[5], ALT: fields[4]})
     }
 
     if err := scanner.Err(); err != nil {
@@ -74,7 +62,7 @@ func ReadBIM(fn string, flipMajorMinor bool) []SNP {
         os.Exit(1)
     }
 
-    return SNPs    
+    return SNPs
 }
 
 // read a PLINK FAM file and return the sampleIDs as a string slice

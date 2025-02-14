@@ -220,30 +220,29 @@ In typical NGS sequencing the technical error rate is very low (typically bmajor
 However in case of aDNA post mortem damage (PMD) specific nucleotids have higher chance of conversions (C->T or a G->A). And also bad QC of aligned reads could lead to so called reference bias, when exogenous non human DNA is forced on the human reference genome (when the read has sufficient length of matching DNA) and since non human (evolutionary older) organism have usually the ancestral (usually major allele) state, this could lead to having genotypes with HOM REF state that are the result of aligned exogenous reads.
 
 optional flags:
--seed positive_number   the randomization will be performed with this seed, DEFAULT generate from unix time
+-seed positive_number   the randomization will be performed with this seed, DEFAULT (0) generate from unix time
 -out  OUT_PREFIX        outprefix of the output, if omited the default is DATAPREFIX_err
 -conv FLOAT             the percentage of conversion error
 -ref  FLOAT             the percentage of reference error
--flip FLOAT             the percentage of flip GT (contamination) error
+-cont FLOAT             the percentage of flip GT (contamination) error
 `)
 
     os.Exit(0)
 }
 
 func main() {
-    var help, flip bool
+    var help bool
     var seed int
     var outPref, endoFn string
     var conv, ref, cont float64
 
     flag.BoolVar(&help,      "help", false, "print help")
-    flag.BoolVar(&flip,      "flip", false, "Flip REF/ALT alleles from the .bim/.snp file")
-    flag.IntVar(&seed,       "seed", 0, "The random seed to use, DEFAULT: generate from unix time")
+    flag.IntVar(&seed,       "seed", 0, "The random seed to use, DEFAULT 0 -> generate from unix time")
     flag.StringVar(&outPref, "out", "", "output file prefix to use for the randomly pseudo haploized dataset DEFAULT: DATA_PREFIX_haploid")
     flag.StringVar(&endoFn, "efile", "", "BED file for outlier contaminator") 
     flag.Float64Var(&conv,       "conv", 0.05, "The percentage of conversion error introduced|DEDFAUL 0.05")
-    flag.Float64Var(&ref,        "ref",  0.05, "The percentage of reference error introducet|DEFAULT 0.05")
-    flag.Float64Var(&cont,       "cont",  0.05, "The percentage of reference error introducet|DEFAULT 0.05")
+    flag.Float64Var(&ref,        "ref",  0.05, "The percentage of reference error introduced|DEFAULT 0.05")
+    flag.Float64Var(&cont,       "cont",  0.05, "The percentage of contamination (flip GT) error introduced|DEFAULT 0.05")
 
     flag.Parse()
 
@@ -294,8 +293,8 @@ func main() {
             endoPrefix := endoFn[0:len(endoFn) - len(endoFext)]
 
             if fext == ".geno" {
-                endoSamples  := correctKin.ReadFAM(endoPrefix + ".ind")
-                endoSNPs := correctKin.ReadBIM(endoPrefix + ".snp", flip)
+                endoSamples  := correctKin.ReadIND(endoPrefix + ".ind")
+                endoSNPs := correctKin.ReadSNP(endoPrefix + ".snp")
 
                 // used to validate binary dataset size
                 endoSampleCount := len(endoSamples)
@@ -304,7 +303,7 @@ func main() {
                 _, endoGENOTYPES  = correctKin.ReadEIG(endoFn, endoSampleCount, endoMarkerCount)
             } else {
                 endoSamples     := correctKin.ReadFAM(endoPrefix + ".fam")
-                endoSNPs := correctKin.ReadBIM(endoPrefix + ".bim", flip)
+                endoSNPs := correctKin.ReadBIM(endoPrefix + ".bim")
 
                 // used to validate binary dataset size
                 endoSampleCount := len(endoSamples)
@@ -317,14 +316,14 @@ func main() {
             os.Exit(1)
         }
     }
-    
+
     var header []byte
     var samples []string
     var markerCount int
 
     if fext == ".geno" {
         samples     = correctKin.ReadIND(prefix + ".ind")
-        SNPs        = correctKin.ReadSNP(prefix + ".snp", flip)
+        SNPs        = correctKin.ReadSNP(prefix + ".snp")
 
         // used to validate binary dataset size or line count in flat format
         sampleCount = len(samples)
@@ -333,7 +332,7 @@ func main() {
         header, GENOTYPES  = correctKin.ReadEIG(args[0], sampleCount, markerCount)
     } else {
         samples     = correctKin.ReadFAM(prefix + ".fam")
-        SNPs = correctKin.ReadBIM(prefix + ".bim", flip)
+        SNPs = correctKin.ReadBIM(prefix + ".bim")
 
         // used to validate binary dataset size
         sampleCount = len(samples)

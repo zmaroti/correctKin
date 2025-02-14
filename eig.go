@@ -59,7 +59,7 @@ func ReadIND(fn string) []string {
 
 // read an EIEGNSTRAT/PACKEDANCESTRYMAP .snp file and return the marker data in a slice
 // that can be used to create a corresponding .bim file (PLINK)
-func ReadSNP(fn string, flipMinorMajor bool) []SNP {
+func ReadSNP(fn string) []SNP {
     inFile, err := os.Open(fn)
     defer inFile.Close()
 
@@ -104,18 +104,7 @@ func ReadSNP(fn string, flipMinorMajor bool) []SNP {
         // EIGENSTRAT .snp file format
         //            ID            CHR      MAP (cm)          POS    REF ALT
         //            rs3094315     1        0.020130          752566 G A
-
-        // note convertf will convert PLINK .bim or .pedsnp files without flipping column 5-6
-        // while in EIGENSTRAT documentation column 5 stands for REF, and 6 stands for the minor ALT allele
-        // in the PLINK format column 5 stands for allale 1 (usually minor allele) and column 6 stands for allele 2 (usually major allele)
-        // This is not an issue still we deal with one data set and not various datasets merged that has differently flipped minor and major alleles
-        // however this option is here so you can fix this issue in case you have standard PLINK format or
-        // PLINK format converted by conmvertf from EIGENSTRAT
-        if flipMinorMajor {
-            SNPs = append(SNPs, SNP{ID: fields[0], CHR: fields[1], MAP: fields[2], POS: pos, REF: fields[5], ALT: fields[4]})
-        } else {
-            SNPs = append(SNPs, SNP{ID: fields[0], CHR: fields[1], MAP: fields[2], POS: pos, REF: fields[4], ALT: fields[5]})
-        }
+        SNPs = append(SNPs, SNP{ID: fields[0], CHR: fields[1], MAP: fields[2], POS: pos, REF: fields[4], ALT: fields[5]})
     }
 
     if err := scanner.Err(); err != nil {
