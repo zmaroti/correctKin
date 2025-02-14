@@ -11,6 +11,7 @@ import (
     "path"
     "compress/gzip"
     "github.com/zmaroti/correctKin"
+    "flag"
 )
 
 // matrix that holds genotype data of samples for the markers
@@ -34,6 +35,11 @@ type SNPfail struct {
 }
 
 var fail   [][]SNPfail
+
+// default false: use the broken EIGENSTRAT .bim notation (flipped minor/major with flipped binary GTs)
+// if set to true, then we don't flip minor/major and conform with the proper PLINK notation, so the plink data
+// can be exported to VCF (--keep-allele-order --real-ref-alleles) and having major exported as REF, minor exported as ALT, and GTs coded accordingly 
+var noflip bool
 
 func parseGTs(gts []string, idx int) {
     SNP := SNPs[idx]
@@ -213,12 +219,15 @@ func writeBIM(outFn string) {
 
     writer := bufio.NewWriter(outFile)
 
-    // .bim file is white space separated, the order of fields is
-    // CHR SNPId MAP POS MAJOR(REF) MINOR(ALT)
-    // 24 rs4379626 0.000000 59027040 A C
+    // .bim file is white space separated
     for _, snp := range SNPs {
-        _, err = writer.WriteString(fmt.Sprintf("%s %s %s %d %s %s\n", 
-            snp.CHR, snp.ID, snp.MAP, snp.POS, snp.REF, snp.ALT))
+        if noflip {
+            _, err = writer.WriteString(fmt.Sprintf("%s %s %s %d %s %s\n", 
+                snp.CHR, snp.ID, snp.MAP, snp.POS, snp.ALT, snp.REF))
+        } else {
+            _, err = writer.WriteString(fmt.Sprintf("%s %s %s %d %s %s\n", 
+                snp.CHR, snp.ID, snp.MAP, snp.POS, snp.REF, snp.ALT))
+        }
 
         if err != nil {
             fmt.Fprintln(os.Stderr, err)
@@ -259,12 +268,12 @@ func writeSNP(outFn string) {
 func printHelp() {
     fmt.Fprintln(os.Stderr,
 `USAGE
-importHaploCall <EIGENSTRAT.snp> <outfile.(bed|geno)> <list of ANGSD.haplo.gz>
+importHaploCall [-noflip default|false] <EIGENSTRAT.snp> <outfile.(bed|geno)> <list of ANGSD.haplo.gz>
 
-The tool will read ANGSD random pseudo haploid call genotype data and writes the corresponding plain text EIGENSTRAT ('.geno' and '.snp') or binary PLINK ('.bed' and '.fam') files. As input it requires an EIGENSTRAT.snp file that contains the required marker informations (CHR, POS, REF, ALT) to generate the genotype data. In case more haploid call files are provided the software will take it that it is a scatter gather genotype of the same individuals for different genome regions.
-In case the genotype of a given individual does not match the expected REF or ALT alleles the chromosome, position expected REF/ALT and the GT of the individual will be written in a log file (indX.log).
+The tool will read ANGSD random pseudo haploid call genotype data and writes the corresponding PACKEDANCESTRYMAP (EIGENSTRAT '.geno' and '.snp') or binary PLINK ('.bed' and '.bim') files. As input it requires an EIGENSTRAT.snp file that contains the required marker informations (CHR, POS, REF, ALT) to generate the genotype data. In case more haploid call files are provided the software will take it that it is a scatter gather genotype of the same individuals for different genome regions. In case the genotype of a given individual does not match the expected REF or ALT alleles the chromosome, position expected REF/ALT and the GT of the individual will be written in a log file (indX.log). NOTE, the '.ind' or '.fam' files has to be created manually as ANGSD names individuals in your BAM list not from the BAM header but always as 'ind0', 'ind1', ...
 
-NOTE: The .ind or .fam file has to be manually prepared based on SEX, and the actual IDs of the individuals as this data is not contained and also that ANGSD will use a general ind0, ind1... naming scheme.
+-noflip
+     By default importHaplocall mimicks the convertf behaviour (flipped GT/minor/major) and creates a PLINK data set that can be imported to EIGENSTRAT by convertf to result in a proper GRCh37 and AADR data set conformant '.snp' file. However, this also means that conforming with the "broken" behaviour of convertf, our PLINK data set cannot be exported to a proper VCF file with the true REF/ALT alleles. To allow this option, we added the '-noflip' option to the importHaploCall tool. Using this option the imported PLINK data set will conform with the PLINK proper major/minor order. Hence data imported with the '-nopflip' option can be exported to VCF with the proper GRCh37 REF/ALT alleles and can be compared to VCF data, or merged with VCF data.
 `)
 
     os.Exit(0)
@@ -272,12 +281,16 @@ NOTE: The .ind or .fam file has to be manually prepared based on SEX, and the ac
 
 
 func main() {
-    if len(os.Args) < 3 {
-        fmt.Println("importHaploCall <EIGENSTRAT.snp> <outfile.(bed|geno)> <list of ANGSD.haplo.gz> ")
-        os.Exit(0)
+    flag.BoolVar(&noflip,  "noflip",  false, "Flip GT and minor/major in .bim file. Default false (we conform with proper PLINK notation). Use this option to import in the 'flipped' convertf/EIGENSTRAT style.")
+    flag.Parse()
+
+    Args := flag.Args()
+
+    if len(Args) < 3 {
+        printHelp()
     }
 
-    outFn := os.Args[2]
+    outFn := Args[1]
     fext := path.Ext(outFn)
 
     // not the data genom files provided?
@@ -285,12 +298,16 @@ func main() {
         printHelp()
     }
 
+    if fext == ".geno" && noflip == true {
+        fmt.Println("WARNING: -noflip option only affects the PLINK data set format.")
+    }
+
     // figure out prefix from provided filename
     prefix := outFn[0:len(outFn) - len(fext)]
 
     fmt.Println("Parsing SNP coordinates")
 
-    SNPs  = correctKin.ReadSNP(os.Args[1], false)
+    SNPs  = correctKin.ReadSNP(Args[0])
 
     GENOTYPES = make([][]uint8, len(SNPs))
 
@@ -309,8 +326,8 @@ func main() {
     
     fmt.Println("Reading ANGSD haploid call files")
 
-    for i := 3; i < len(os.Args); i++ {
-        readHaplo(os.Args[i], SNPMap)
+    for i := 2; i < len(Args); i++ {
+        readHaplo(Args[i], SNPMap)
     }
 
     // fix missing SNPs to missing data
@@ -324,6 +341,16 @@ func main() {
             }
 
             GENOTYPES[i] = GTARR
+        // if noflip is true and output is bed, flip the HOMREF/HOMALT values as we also flip major/minor in the .bim file in this case
+        // this way PINK data set will be coded as in PLINK specification, minor in 5th column, major in 6th column, and GTs accordingly
+        } else if noflip == true && fext == ".bed" {
+            for j, gt := range GTARR {
+                if gt == 2 {
+                    GENOTYPES[i][j] = 0
+                } else if gt == 0 {
+                    GENOTYPES[i][j] = 2
+                }
+            }
         }
     }
 
@@ -340,6 +367,3 @@ func main() {
 
     writeLogs()
 }
-
-
-
