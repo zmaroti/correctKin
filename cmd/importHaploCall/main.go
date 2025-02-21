@@ -121,7 +121,7 @@ func readHaplo(fn string, SNPMap map[string]map[int]int) {
 
     if header != nil {
         if fieldCount != len(header) {
-            fmt.Fprintln(os.Stderr, "FATAL: mixed number of individuals in provided ANGSD haploid clal files.")
+            fmt.Fprintln(os.Stderr, "FATAL: mixed number of individuals in provided ANGSD haploid call files.")
             os.Exit(1)
         }
     } else {
@@ -136,6 +136,11 @@ func readHaplo(fn string, SNPMap map[string]map[int]int) {
     for haploCall.Scan() {
         // NOTE ANGSD haplocall puts an extra TAB at the end of GT lines
         arr = strings.SplitN(haploCall.Text(), "\t", fieldCount)
+
+        if fieldCount != len(arr) {
+            fmt.Fprintf(os.Stderr, "FATAL: corrupted file: %s, at line %s\n", count + misscount + 2)
+            os.Exit(1)
+        }
 
         // fix last element with extra TAB
         arr[fieldCount-1] = strings.TrimRight(arr[fieldCount-1], "\t")
